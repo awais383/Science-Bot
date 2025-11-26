@@ -39,7 +39,7 @@ Format the response as JSON like:
 {{"Accuracy": [score, "feedback"], "Completeness": [score, "feedback"], ...}}
 """
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",  # Using a working Groq model
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
     
