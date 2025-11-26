@@ -1,13 +1,15 @@
 import os
 import streamlit as st
 import pandas as pd
-from dotenv import load_dotenv
 from groq import Groq
 import json
 
 # ---------------- Load Environment Variables ----------------
-load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# For Streamlit Cloud, use st.secrets instead of dotenv
+try:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except:
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # ---------------- Initialize Groq Client ----------------
 client = Groq(api_key=GROQ_API_KEY)
@@ -37,7 +39,7 @@ Format the response as JSON like:
 {{"Accuracy": [score, "feedback"], "Completeness": [score, "feedback"], ...}}
 """
     response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",  # Replace with the model you have access to
+        model="llama-3.3-70b-versatile",  # Using a working Groq model
         messages=[{"role": "user", "content": prompt}]
     )
     
