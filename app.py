@@ -5,14 +5,21 @@ from groq import Groq
 import json
 
 # ---------------- Load Environment Variables ----------------
-# For Streamlit Cloud, use st.secrets instead of dotenv
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+    st.write("DEBUG: Loaded API key from Streamlit secrets.")
 except:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    st.write("DEBUG: Loaded API key from OS environment variables.")
+
+st.write("DEBUG: API Key exists =", GROQ_API_KEY is not None)
 
 # ---------------- Initialize Groq Client ----------------
-client = Groq(api_key=GROQ_API_KEY)
+try:
+    client = Groq(api_key=GROQ_API_KEY)
+    st.write("DEBUG: Groq client initialized successfully.")
+except Exception as e:
+    st.error(f"DEBUG ERROR: Failed to initialize Groq client: {e}")
 
 # ---------------- Rubric Definition ----------------
 RUBRIC = {
@@ -25,6 +32,7 @@ RUBRIC = {
 
 # ---------------- Evaluate Answer Function ----------------
 def evaluate_answer(answer, subject, topic):
+
     prompt = f"""
 You are an expert in {subject}. Evaluate the following answer on the topic '{topic}' using the rubric below:
 
@@ -38,22 +46,38 @@ For each criterion, provide:
 Format the response as JSON like:
 {{"Accuracy": [score, "feedback"], "Completeness": [score, "feedback"], ...}}
 """
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    
+
+    # Debug print: prompt content
+    st.write("DEBUG: Prompt sent to model:")
+    st.code(prompt)
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        st.write("DEBUG: Raw model response:")
+        st.code(response)
+    except Exception as e:
+        st.error(f"DEBUG ERROR: API request failed: {e}")
+        return {"error": str(e)}
+
     content = response.choices[0].message.content
+    st.write("DEBUG: Model returned content:")
+    st.code(content)
 
     # Convert JSON-like string to Python dictionary safely
     try:
-        return json.loads(content.replace("'", '"'))
-    except:
+        parsed = json.loads(content.replace("'", '"'))
+        st.write("DEBUG: JSON successfully parsed:", parsed)
+        return parsed
+    except Exception as e:
+        st.error(f"DEBUG ERROR: JSON parsing failed: {e}")
         return {"raw": content}
 
 # ---------------- Streamlit UI ----------------
 st.set_page_config(page_title="Science Answer Evaluator", layout="wide")
-st.title("🧪 Science Answer Evaluator Chatbot")
+st.title("🧪 Science Answer Evaluator Chatbot (Debug Mode)")
 
 subject = st.selectbox("Select Subject", ["Biology", "Physics", "Chemistry"])
 topic = st.text_input("Enter Topic")
@@ -68,15 +92,15 @@ if st.button("Evaluate Answer"):
         if "raw" in evaluation:
             st.text(evaluation["raw"])
         else:
-            # Display rubric table
             df = pd.DataFrame({
                 "Criterion": list(evaluation.keys()),
                 "Score": [v[0] for v in evaluation.values()],
                 "Feedback": [v[1] for v in evaluation.values()]
             })
+
             st.dataframe(df)
 
-            # Bar chart for scores
+            # Bar chart
             st.subheader("📈 Scores Visualization")
             st.bar_chart(df.set_index("Criterion")["Score"])
     else:
